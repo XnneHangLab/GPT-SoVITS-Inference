@@ -34,12 +34,12 @@ from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 class GSV_Synthesizer(Base_TTS_Synthesizer):
     device: str = "auto"
     is_half: bool = False
-    models_path:str = "models/gsv"
-    cnhubert_base_path:str = "models/pretrained_models/gsv/chinese-hubert-base"
-    bert_base_path:str = "models/pretrained_models/gsv/chinese-roberta-wwm-ext-large"
+    models_path:str = "models/gptsovits"
+    cnhubert_base_path:str = "bert/chinese-hubert-base"
+    bert_base_path:str = "bert/chinese-roberta-wwm-ext-large"
     save_prompt_cache:bool = True
     prompt_cache_dir:str = "cache/prompt_cache"
-    default_character:str = None
+    default_character:str = "elaina"
 
     ui_config:dict = None
     tts_pipline:TTS = None
@@ -67,7 +67,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
 
         if self.default_character is None:
             self.default_character = next(iter(self.get_characters()), None)
-
+        print(f"默认角色: {self.default_character}")
         self.load_character(self.default_character)
         ui_config_path = os.path.join("Synthesizers/gsv_fast/configs", "ui_config.json")
         with open(ui_config_path, 'r', encoding='utf-8') as f:
@@ -98,9 +98,9 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
 
     def get_characters(self) -> dict:
         characters_and_emotions = {}
-        # self.models_path = os.environ.get('models_path', 'trained')
-        self.models_path = self.ui_config.get('models_path', 'trained')
-        print(f"get_characters trained模型地址: {os.environ.get('models_path', 'trained')}")
+        # self.models_path = os.environ.get('models_path', 'models/gptsovits')
+        self.models_path = self.ui_config.get('models_path', 'models/gptsovits')
+        print(f"get_characters trained模型地址: {os.environ.get('models_path', 'models/gptsovits')}")
 
         # 遍历模型路径下的所有文件夹
         for character_subdir in os.listdir(self.models_path):

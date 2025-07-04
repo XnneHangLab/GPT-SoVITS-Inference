@@ -11,7 +11,7 @@ sys.path.append(now_dir)
 
 global state
 
-state = {   'models_path': r"trained",
+state = {   'models_path': r"models/gptsovits",
             'character_list': [],
             
 
@@ -30,12 +30,12 @@ infer_config = {
 
 # 取得模型文件夹路径
 config_path = "gsv_config.json"
-state["models_path"] = "trained"
+state["models_path"] = "models/gptsovits"
 locale_language = "auto"
 if os.path.exists(config_path):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
-        state["models_path"] = config.get("models_path", "trained")
+        state["models_path"] = config.get("models_path", "models/gptsovits")
         
         
 from tools.i18n.i18n import I18nAuto

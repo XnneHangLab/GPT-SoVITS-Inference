@@ -19,3 +19,6 @@ tmp_audio
 trained*
 history
 app.log
+
+bert/
+models/
