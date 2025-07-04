@@ -45,6 +45,7 @@ dependencies = [
     "socksio>=1.0.0",
     "pytorch-lightning>=2.5.2",
     "matplotlib>=3.10.3",
+    "tomli-w>=1.2.0",
 ]
 authors = [{ name = "MrXnneHang", email = "XnneHang@gmail.com" }]
 keywords = []
@@ -58,6 +59,10 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
+
+[project.scripts]
+setting = "gsv.config_manager.gsv:main" # 获取项目所在根目录绝对路径, 防止 streamlit UI 中默认以 `.` 作为根目录而找不到一些文件.
+
 
 [[tool.uv.index]]
 name = "pytorch-cu118"
