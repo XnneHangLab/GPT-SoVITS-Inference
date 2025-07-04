@@ -23,11 +23,11 @@ from pydantic import BaseModel, Field, model_validator
 
 class GSV_TTS_Task(Base_TTS_Task):
     # character: Optional[str] = None
-    # emotion: Optional[str] = None
-    ref_audio_path: Optional[str] = None
-    prompt_text: Optional[str] = None
-    prompt_language: Optional[str] = None
-    text_language: Optional[str] = None
+    emotion: str = ""
+    ref_audio_path: str = ""
+    prompt_text: str = ""
+    prompt_language: str = "auto"
+    text_language: str = "auto"
     speaker_id: Optional[int] = None
     batch_size: Optional[int] = None
     top_k: Optional[int] = None

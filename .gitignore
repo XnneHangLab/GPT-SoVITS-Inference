@@ -22,3 +22,4 @@ app.log
 
 bert/
 models/
+output.wav

@@ -87,7 +87,7 @@ if __name__ == "__main__":
     tts_synthesizer = TTS_Synthesizer(debug_mode=True)
     
     # 生成一句话充当测试，减少第一次请求的等待时间
-    gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"你好，世界"}) )
+    gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"筆者はすでにエッセイの序論"}) )
     next(gen)
     
     # 打印一些辅助信息
