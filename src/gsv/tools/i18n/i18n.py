@@ -1,7 +1,7 @@
 import os
 import json
 import locale
-from src.common_config_manager import app_config
+from gsv.common_config_manager import app_config
 
 def load_language_list(language, locale_paths):
     language_map = {}

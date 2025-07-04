@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from src.common_config_manager import __version__, api_config
+from gsv.common_config_manager import __version__, api_config
 from gsv.gsv_state_manager import gsv_tts_state_manager
 from gsv.api.routes import router as gsv_router
 from fastapi import FastAPI

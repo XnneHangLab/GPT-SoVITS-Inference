@@ -1,7 +1,7 @@
 # 在开头加入路径
 import os
 from contextlib import asynccontextmanager
-from src.common_config_manager import __version__, api_config
+from gsv.common_config_manager import __version__, api_config
 from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse# 将当前文件所在的目录添加到 sys.path
 from gsv.Synthesizers.base import Base_TTS_Task
