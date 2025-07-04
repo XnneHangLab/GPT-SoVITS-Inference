@@ -60,6 +60,7 @@ http://127.0.0.1:5000/tts?character={{characterName}}&text={{text}}
         "character": "${chaName}",
         "emotion": "${Emotion}",
         "text": "${speakText}",
+        "ref_audio_path": "${refAudioPath}",
         "text_language": "${textLanguage}",
         "batch_size": ${batch_size},
         "speed": ${speed},
@@ -90,6 +91,7 @@ You can omit one or more items. From version 2.2.4, an alias system was introduc
 
 - **text**: The text to be converted, URL encoding is recommended.
 - **character**: Character folder name, pay attention to case sensitivity, full/half width, and language.
+- **ref_audio_path**: Reference audio path, can be used to synthesize audio with a certain voice style.
 - **emotion**: Character emotion, must be an actually supported emotion of the character, otherwise, the default emotion will be used.
 - **text_language**: Text language (auto / zh / en / ja), default is multilingual mixed. 
 - **top_k**, **top_p**, **temperature**: GPT model parameters, no need to modify if unfamiliar.
