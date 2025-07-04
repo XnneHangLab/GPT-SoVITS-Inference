@@ -20,7 +20,7 @@ logging.getLogger("asyncio").setLevel(logging.ERROR)
 logging.getLogger("charset_normalizer").setLevel(logging.ERROR)
 logging.getLogger("torchaudio._extension").setLevel(logging.ERROR)
 
-from Synthesizers.base import Base_TTS_Synthesizer, Base_TTS_Task, get_wave_header_chunk
+from gsv.Synthesizers.base import Base_TTS_Synthesizer, Base_TTS_Task, get_wave_header_chunk
 from src.common_config_manager import app_config, __version__
 
 frontend_version = __version__
@@ -38,10 +38,10 @@ import tools.i18n.i18n as i18n_module
 
 
 # 设置国际化支持
-i18n = i18n_module.I18nAuto(language=app_config.locale, locale_path=f"Synthesizers/{synthesizer_name}/configs/i18n/locale")
+i18n = i18n_module.I18nAuto(language=app_config.locale, locale_path=f"src/gsv/Synthesizers/{synthesizer_name}/configs/i18n/locale")
 
-# 动态导入合成器模块, 此处可写成 from Synthesizers.xxx import TTS_Synthesizer, TTS_Task
-synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
+# 动态导入合成器模块, 此处可写成 from gsv.Synthesizers.xxx import TTS_Synthesizer, TTS_Task
+synthesizer_module = import_module(f"gsv.Synthesizers.{synthesizer_name}")
 TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
 TTS_Task = synthesizer_module.TTS_Task
 

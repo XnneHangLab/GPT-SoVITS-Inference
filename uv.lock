@@ -656,7 +656,7 @@ wheels = [
 [[package]]
 name = "gpt-sovits-inference"
 version = "0.0.1"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "chardet" },
     { name = "cn2an" },

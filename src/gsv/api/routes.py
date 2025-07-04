@@ -1,41 +1,34 @@
 # 在开头加入路径
-import os, sys
-import importlib
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
+import os
+from contextlib import asynccontextmanager
 from src.common_config_manager import __version__, api_config
-import soundfile as sf
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-import tempfile
-import uvicorn  
-import json
-
-# 将当前文件所在的目录添加到 sys.path
-from gsv.Synthesizers.base import Base_TTS_Task, Base_TTS_Synthesizer
-
+from fastapi import FastAPI, Request, HTTPException, APIRouter
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse# 将当前文件所在的目录添加到 sys.path
+from gsv.Synthesizers.base import Base_TTS_Task
+from gsv.gsv_state_manager import gsv_tts_state_manager
 # 创建合成器实例
-tts_synthesizer:Base_TTS_Synthesizer = None
 
-def set_tts_synthesizer(synthesizer:Base_TTS_Synthesizer):
-    global tts_synthesizer
-    tts_synthesizer = synthesizer
+router = APIRouter()
 
-# 存储临时文件的字典
-temp_files = {}
+# def set_tts_synthesizer(synthesizer:Base_TTS_Synthesizer):
+#     global tts_synthesizer
+#     tts_synthesizer = synthesizer
 
+@router.post("/tts/gptsovits/character_list")
 async def character_list(request: Request):
+    tts_synthesizer = gsv_tts_state_manager.get_tts_synthesizer()
+    if tts_synthesizer is None:
+        return HTTPException(status_code=500, detail="TTS synthesizer not initialized")
     res = JSONResponse(tts_synthesizer.get_characters())
     return res
 
+@router.post("/tts/gptsovits")
 async def tts(request: Request):
     
     from time import time as tt
     t1 = tt()
+    # 存储临时文件的字典
+    temp_files = {}
     print(f"Request Time: {t1}")
     
     # 尝试从JSON中获取数据，如果不是JSON，则从查询参数中获取
@@ -43,12 +36,14 @@ async def tts(request: Request):
         data = request.query_params
     else:
         data = await request.json()
-    
-    task:Base_TTS_Task = tts_synthesizer.params_parser(data)
+    tts_synthesizer = gsv_tts_state_manager.get_tts_synthesizer()
+    if tts_synthesizer is None:
+        return HTTPException(status_code=500, detail="TTS synthesizer not initialized")
+    task:Base_TTS_Task = tts_synthesizer.params_parser(data) # type: ignore
 
-    if task.task_type == "text" and task.text.strip() == "":
+    if task.task_type == "text" and task.text.strip() == "": # type: ignore
         return HTTPException(status_code=400, detail="Text is empty")
-    elif task.task_type == "ssml" and task.ssml.strip() == "":
+    elif task.task_type == "ssml" and task.ssml.strip() == "": # type: ignore
         return HTTPException(status_code=400, detail="SSML is empty")
     md5_value = task.md5
     if task.stream == False:
@@ -72,43 +67,46 @@ async def tts(request: Request):
         gen = tts_synthesizer.generate(task, return_type="numpy")
         return StreamingResponse(gen,  media_type='audio/wav')
 
-
-
-
-if __name__ == "__main__":
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 应用启动时执行
     # 动态导入合成器模块, 此处可写成 from gsv.Synthesizers.xxx import TTS_Synthesizer, TTS_Task
     from importlib import import_module
-    from src.api_utils import get_localhost_ipv4_address
     synthesizer_name = api_config.synthesizer
-    synthesizer_module = import_module(f"gsv.Synthesizers.{synthesizer_name}")
+    synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
     TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
-    TTS_Task = synthesizer_module.TTS_Task
+    # TTS_Task = synthesizer_module.TTS_Task
     # 初始化合成器的类
     tts_synthesizer = TTS_Synthesizer(debug_mode=True)
-    
+    gsv_tts_state_manager.set_state(tts_synthesizer)
     # 生成一句话充当测试，减少第一次请求的等待时间
     gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"筆者はすでにエッセイの序論"}) )
     next(gen)
-    
-    # 打印一些辅助信息
     print(f"Backend Version: {__version__}")
-    tts_host = api_config.tts_host
-    tts_port = api_config.tts_port
-    ipv4_address = get_localhost_ipv4_address(tts_host)
-    ipv4_link = f"http://{ipv4_address}:{tts_port}"
-    print(f"INFO:     Local Network URL: {ipv4_link}")
-    
-    app = FastAPI()
+    yield
+    # 应用关闭时执行，清理临时文件
 
-    # 设置CORS
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    app.add_api_route('/tts', tts, methods=["GET", "POST"])
-    app.add_api_route('/character_list', character_list, methods=["GET"])
-    uvicorn.run(app, host=tts_host, port=tts_port)
+
+
+
+
+    # tts_host = api_config.tts_host
+    # tts_port = api_config.tts_port
+    # ipv4_address = get_localhost_ipv4_address(tts_host)
+    # ipv4_link = f"http://{ipv4_address}:{tts_port}"
+    # print(f"INFO:     Local Network URL: {ipv4_link}")
+    
+    # app = FastAPI()
+
+    # # 设置CORS
+    # app.add_middleware(
+    #     CORSMiddleware,
+    #     allow_origins=["*"],
+    #     allow_credentials=True,
+    #     allow_methods=["*"],
+    #     allow_headers=["*"],
+    # )
+    # app.add_api_route('/tts', tts, methods=["GET", "POST"])
+    # app.add_api_route('/character_list', character_list, methods=["GET"])
+    # uvicorn.run(app, host=tts_host, port=tts_port)
 

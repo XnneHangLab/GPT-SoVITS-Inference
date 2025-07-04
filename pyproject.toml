@@ -78,3 +78,11 @@ torchaudio = [
   { index = "pytorch-cu118", marker = "sys_platform == 'win32'" },
   { index = "pytorch-cpu", marker = "sys_platform != 'win32'"}
 ]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gsv"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
