@@ -30,7 +30,7 @@ dict_language = {
     "all_ja": "all_ja",
 }
 
-from GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+from gsv.GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
 class GSV_Synthesizer(Base_TTS_Synthesizer):
     device: str = "auto"
     is_half: bool = False
