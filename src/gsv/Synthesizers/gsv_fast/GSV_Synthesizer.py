@@ -224,9 +224,11 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             return gen
         elif return_type == "filepath":
             if save_path is None:
-                save_path = f"tmp_audio/{datetime.now().strftime('%Y%m%d%H%M%S')}.{task.format}"
+                save_path = f"cache/gpt_sovits/{datetime.now().strftime('%Y%m%d%H%M%S')}.{task.format}"
             sr, audio_data = next(gen)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            from pathlib import Path
+            path = Path(save_path)
+            path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
             sf.write(save_path, audio_data, sr)
             del audio_data
             return save_path

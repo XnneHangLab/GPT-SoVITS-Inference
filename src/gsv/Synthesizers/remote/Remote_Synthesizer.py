@@ -74,7 +74,10 @@ class Remote_Synthesizer(Base_TTS_Synthesizer):
             return_type == "numpy" and not task.stream
         ):
             if save_path is None:
-                save_path = f"tmp_audio/{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+                save_path = f"cache/gpt_sovits/{datetime.now().strftime('%Y%m%d%H%M%S')}.wav"
+            from pathlib import Path
+            path = Path(save_path)
+            path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
             res = requests.post(url, data=json.dumps(data), headers=headers)
             if res.status_code == 200:
                 with open(save_path, "wb") as f:
