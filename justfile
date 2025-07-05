@@ -1,5 +1,5 @@
 server:
-    uv run uvicorn src.gsv.server:app --reload --host localhost --port 12393
+  uv run uvicorn src.gsv.server:app --reload --host localhost --port 12393
 test:
 	curl -X POST "http://127.0.0.1:12393/tts/gptsovits" \
 	-H "Content-Type: application/json" \
