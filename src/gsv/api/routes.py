@@ -1,8 +1,6 @@
 # 在开头加入路径
 import os
-from contextlib import asynccontextmanager
-from gsv.common_config_manager import __version__
-from fastapi import FastAPI, Request, HTTPException, APIRouter
+from fastapi import Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse# 将当前文件所在的目录添加到 sys.path
 from gsv.Synthesizers.base import Base_TTS_Task
 from gsv.gsv_state_manager import gsv_tts_state_manager
@@ -66,47 +64,3 @@ async def tts(request: Request):
     else:
         gen = tts_synthesizer.generate(task, return_type="numpy")
         return StreamingResponse(gen,  media_type='audio/wav')
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # 应用启动时执行
-    # 动态导入合成器模块, 此处可写成 from gsv.Synthesizers.xxx import TTS_Synthesizer, TTS_Task
-    from importlib import import_module
-    synthesizer_name = "gsv_fast"
-    synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
-    TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
-    # TTS_Task = synthesizer_module.TTS_Task
-    # 初始化合成器的类
-    tts_synthesizer = TTS_Synthesizer(debug_mode=True)
-    gsv_tts_state_manager.set_state(tts_synthesizer)
-    # 生成一句话充当测试，减少第一次请求的等待时间
-    gen = tts_synthesizer.generate(tts_synthesizer.params_parser({"text":"筆者はすでにエッセイの序論"}) )
-    next(gen)
-    print(f"Backend Version: {__version__}")
-    yield
-    # 应用关闭时执行，清理临时文件
-
-
-
-
-
-    # tts_host = api_config.tts_host
-    # tts_port = api_config.tts_port
-    # ipv4_address = get_localhost_ipv4_address(tts_host)
-    # ipv4_link = f"http://{ipv4_address}:{tts_port}"
-    # print(f"INFO:     Local Network URL: {ipv4_link}")
-    
-    # app = FastAPI()
-
-    # # 设置CORS
-    # app.add_middleware(
-    #     CORSMiddleware,
-    #     allow_origins=["*"],
-    #     allow_credentials=True,
-    #     allow_methods=["*"],
-    #     allow_headers=["*"],
-    # )
-    # app.add_api_route('/tts', tts, methods=["GET", "POST"])
-    # app.add_api_route('/character_list', character_list, methods=["GET"])
-    # uvicorn.run(app, host=tts_host, port=tts_port)
-
