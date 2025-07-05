@@ -2,6 +2,7 @@ import os
 import json
 import locale
 from gsv.common_config_manager import app_config
+from pathlib import Path
 
 def load_language_list(language, locale_paths):
     language_map = {}
@@ -13,7 +14,7 @@ def load_language_list(language, locale_paths):
     return language_map
 
 class I18nAuto:
-    def __init__(self, language=None, locale_paths=[], locale_path="./i18n/locale"):
+    def __init__(self, language=None, locale_paths=[], locale_path=str(Path(__file__).parent.parent.parent.parent.parent / "i18n" / "locale")):
         if language in ["auto", None]:
             if app_config.locale in ["auto", None, ""]:
                 language = locale.getdefaultlocale()[0]

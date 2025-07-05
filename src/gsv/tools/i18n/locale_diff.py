@@ -1,9 +1,10 @@
 import json
 import os
 from collections import OrderedDict
+from pathlib import Path
 
 # dir_path = "./i18n/locale" # The path to the i18n locale directory, you can change it to your own path
-dir_path = "./tools/srt_slicer/i18n/locale"
+dir_path = Path(__file__).parent.parent / "tools" / "srt_slicer" / "i18n" / "locale"
 # Define the standard file name
 standard_file = os.path.join(dir_path, "zh_CN.json")
 

@@ -2,19 +2,20 @@
 import os, json, sys
 sys.path.append(".")
 
-from uuid import uuid4
-from typing import List, Dict, Literal, Optional, Any, Union
-import urllib.parse
+from typing import Optional, Any, Union
 import hashlib
-
+from pathlib import Path
 from gsv.Synthesizers.base import Base_TTS_Task, ParamItem, init_params_config
 
 def get_params_config():
     try:
-        with open(os.path.join("src/gsv/Synthesizers/gsv_fast/configs", "params_config.json"), "r", encoding="utf-8") as f:
+        path = Path(__file__).parent / "configs"/ "params_config.json"
+        if not path.exists():
+            print(path)
+        with path.open("r", encoding="utf-8") as f:
             return init_params_config(json.load(f))
-    except:
-        raise FileNotFoundError("params_config.json not found or invalid.")
+    except Exception as e:
+        raise FileNotFoundError("params_config.json not found or invalid.") from e
     
 
 params_config = get_params_config()

@@ -2,7 +2,7 @@ import ast
 import json
 from collections import OrderedDict
 import os
-
+from pathlib import Path
 # locale_path = "./i18n/locale" # The path to the i18n locale directory, you can change it to your own path
 # scan_list = ["./",
 #              "GPT_SoVITS/",
@@ -10,8 +10,8 @@ import os
 #              ]  # The path to the directory you want to scan, you can change it to your own path
 # scan_subfolders = False  # Whether to scan subfolders
 
-locale_path = "./tools/srt_slicer/i18n/locale"
-scan_list = ["./tools/srt_slicer"]  # The path to the directory you want to scan, you can change it to your own path
+locale_path = str(Path(__file__).parent.parent / "srt_slicer" / "i18n" / "locale")
+scan_list = [str(Path(__file__).parent.parent / "tools" / "srt_slicer")]  # The path to the directory you want to scan, you can change it to your own path
 scan_subfolders = True
 
 special_words_to_keep = {

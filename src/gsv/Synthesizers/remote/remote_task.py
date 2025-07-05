@@ -6,7 +6,7 @@ from uuid import uuid4
 from typing import List, Dict, Literal, Optional, Any, Union
 import urllib.parse
 import hashlib
-
+from pathlib import Path
 from gsv.Synthesizers.base import Base_TTS_Task, ParamItem, init_params_config
 
 global global_based_synthesizer
@@ -34,8 +34,8 @@ def get_ui_config(based_synthesizer:str= None)->Dict[str, Any]:
         based_synthesizer = global_based_synthesizer
     assert based_synthesizer is not None, "based_synthesizer is not set, please init the remote synthesizer first."
     
-    remote_ui_config_path = os.path.join(os.path.dirname(__file__), "configs", "ui_config.json")
-    based_ui_config_path = os.path.join("Synthesizers", based_synthesizer ,"configs", "ui_config.json")
+    remote_ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
+    based_ui_config_path = str(Path(__file__).parent.parent / based_synthesizer / "configs" / "ui_config.json")
     
     ui_config :Dict[str, Any] = {}
     try:

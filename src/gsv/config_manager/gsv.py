@@ -13,7 +13,8 @@ from gsv.config_manager.config import load_settings_file, search_for_settings_fi
 
 
 class GPTSoVITSSetting(BaseModel):
-    i18n_dir: Annotated[str, Field("./i18n", title="存放 i18n locale 的目录")]  # 项目根目录, 实时计算绝对目录。
+    # i18n_dir: Annotated[str, Field("./i18n", title="存放 i18n locale 的目录")]  # 项目根目录, 实时计算绝对目录。
+    as_package: Annotated[bool, Field(False, title="是否作为包运行,会影响一些模型和配置文件的路径导入")]  # 是否作为包运行
 
 
 
@@ -21,4 +22,4 @@ def main():
     path = search_for_settings_file("gpt_sovits.toml")
     if path is not None:
         path.unlink()
-    settings = load_settings_file("gpt_sovits.toml", GPTSoVITSSetting)
+    load_settings_file("gpt_sovits.toml", GPTSoVITSSetting)

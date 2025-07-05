@@ -61,7 +61,7 @@ classifiers = [
 ]
 
 [project.scripts]
-setting = "gsv.config_manager.gsv:main" # 获取项目所在根目录绝对路径, 防止 streamlit UI 中默认以 `.` 作为根目录而找不到一些文件.
+gsv_setting = "gsv.config_manager.gsv:main" # 获取项目所在根目录绝对路径, 防止 streamlit UI 中默认以 `.` 作为根目录而找不到一些文件.
 
 
 [[tool.uv.index]]

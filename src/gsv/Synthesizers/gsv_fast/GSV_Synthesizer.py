@@ -1,6 +1,6 @@
 import io, wave
 import os, json, sys
-import threading
+from pathlib import Path
 from typing import Any, Union, Generator, Literal, List, Dict, Tuple
 from gsv.Synthesizers.base import Base_TTS_Synthesizer, load_config
 import re
@@ -69,7 +69,8 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             self.default_character = next(iter(self.get_characters()), None)
         print(f"默认角色: {self.default_character}")
         self.load_character(self.default_character)
-        ui_config_path = os.path.join("src/gsv/Synthesizers/gsv_fast/configs", "ui_config.json")
+        # XnneHang 这里是为了兼容不在根目录运行的情况
+        ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
         with open(ui_config_path, 'r', encoding='utf-8') as f:
             self.ui_config = json.load(f)
 
