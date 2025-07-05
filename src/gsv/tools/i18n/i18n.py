@@ -1,7 +1,6 @@
 import os
 import json
 import locale
-from gsv.common_config_manager import app_config
 from pathlib import Path
 
 def load_language_list(language, locale_paths):
@@ -16,10 +15,7 @@ def load_language_list(language, locale_paths):
 class I18nAuto:
     def __init__(self, language=None, locale_paths=[], locale_path=str(Path(__file__).parent.parent.parent.parent.parent / "i18n" / "locale")):
         if language in ["auto", None]:
-            if app_config.locale in ["auto", None, ""]:
-                language = locale.getdefaultlocale()[0]
-            else:
-                language = app_config.locale
+            language = locale.getdefaultlocale()[0]
         if not any(os.path.exists(os.path.join(locale_path, f"{language}.json")) for locale_path in locale_paths):
             language = "zh_CN"
         self.language = language

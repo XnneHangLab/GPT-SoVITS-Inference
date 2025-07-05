@@ -49,7 +49,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         super().__init__()
 
         if config_path is None:
-            config_path = "gsv_config.json"
+            config_path = "./config/gsv_config.json"
         config_dict = load_config(config_path)
         config_dict.update(kwargs)
         for key, value in config_dict.items():

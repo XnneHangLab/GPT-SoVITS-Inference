@@ -1,7 +1,7 @@
 # 在开头加入路径
 import os
 from contextlib import asynccontextmanager
-from gsv.common_config_manager import __version__, api_config
+from gsv.common_config_manager import __version__
 from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse# 将当前文件所在的目录添加到 sys.path
 from gsv.Synthesizers.base import Base_TTS_Task
@@ -72,7 +72,7 @@ async def lifespan(app: FastAPI):
     # 应用启动时执行
     # 动态导入合成器模块, 此处可写成 from gsv.Synthesizers.xxx import TTS_Synthesizer, TTS_Task
     from importlib import import_module
-    synthesizer_name = api_config.synthesizer
+    synthesizer_name = "gsv_fast"
     synthesizer_module = import_module(f"Synthesizers.{synthesizer_name}")
     TTS_Synthesizer = synthesizer_module.TTS_Synthesizer
     # TTS_Task = synthesizer_module.TTS_Task
