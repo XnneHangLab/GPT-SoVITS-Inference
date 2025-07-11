@@ -88,7 +88,7 @@ class TTS_Config:
     def __init__(self, configs: Union[dict, str]=None):
         
         # 设置默认配置文件路径
-        configs_base_path:str = "GPT_SoVITS/configs/"
+        configs_base_path:str = "cache/gsv/" # 似乎用不到。
         os.makedirs(configs_base_path, exist_ok=True)
         self.configs_path:str = os.path.join(configs_base_path, "tts_infer.yaml")
         
