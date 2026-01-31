@@ -15,7 +15,7 @@ import logging
 
 logging.getLogger("numba").setLevel(logging.ERROR)
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging
 
 

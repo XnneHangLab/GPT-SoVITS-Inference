@@ -15,6 +15,8 @@ import soundfile as sf
 from .gsv_config import load_infer_config, auto_generate_infer_config, get_device_info
 from datetime import datetime
 
+import logging
+
 dict_language = {
     "中文": "all_zh",#全部按中文识别
     "英文": "en",#全部按英文识别#######不变
@@ -56,7 +58,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             if hasattr(self, key):
                 setattr(self, key, value)
         if self.debug_mode:
-            print(f"GSV_Synthesizer config: {config_dict}")
+            logging.getLogger(__name__).debug(f"GSV_Synthesizer config: {config_dict}")
 
         self.device, self.is_half = get_device_info(self.device, self.is_half)
         tts_config = TTS_Config("")
@@ -67,7 +69,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
 
         if self.default_character is None:
             self.default_character = next(iter(self.get_characters()), None)
-        print(f"默认角色: {self.default_character}")
+        logging.getLogger(__name__).debug(f"默认角色: {self.default_character}")
         self.load_character(self.default_character)
         # XnneHang 这里是为了兼容不在根目录运行的情况
         ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
@@ -101,7 +103,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         characters_and_emotions = {}
         # self.models_path = os.environ.get('models_path', 'models/gptsovits')
         self.models_path = self.ui_config.get('models_path', 'models/gptsovits')
-        print(f"get_characters trained模型地址: {os.environ.get('models_path', 'models/gptsovits')}")
+        logging.getLogger(__name__).debug(f"get_characters trained模型地址: {os.environ.get('models_path', 'models/gptsovits')}")
 
         # 遍历模型路径下的所有文件夹
         for character_subdir in os.listdir(self.models_path):
@@ -140,13 +142,13 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
                 return
             else:
                 character = self.default_character
-                print(f"{character}为空，尝试切换到默认角色{self.default_character}")
+                logging.getLogger(__name__).debug(f"{character}为空，尝试切换到默认角色{self.default_character}")
                 return self.load_character(character)
         if str(character).lower() == str(self.character).lower():
             return
         character_path=os.path.join(self.models_path, character)
         if not os.path.exists(character_path):
-            print(f"找不到角色文件夹: {character}，沿用之前的角色{self.character}")
+            logging.getLogger(__name__).warning(f"找不到角色文件夹: {character}，沿用之前的角色{self.character}")
             return
             # raise Exception(f"Can't find character folder: {character}")
         assert os.path.exists(character_path), f"找不到角色文件夹: {character}"
@@ -174,7 +176,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         self.tts_pipline.init_t2s_weights(gpt_path)
         self.tts_pipline.init_vits_weights(sovits_path)
         t1 = tt()
-        print(f"加载角色成功: {character}, 耗时: {t1-t0:.2f}s")
+        logging.getLogger(__name__).debug(f"加载角色成功: {character}, 耗时: {t1-t0:.2f}s")
 
     def generate_from_text(self, task: TTS_Task):
         self.load_character(task.character)
@@ -213,7 +215,8 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         save_path: str = None,
     ) -> Union[str, Generator[Tuple[int, np.ndarray], None, None], Any]:
         if self.debug_mode:
-            print(f"task: {task}")
+            import logging
+            logging.getLogger(__name__).debug(f"task: {task}")
         gen = None
         if task.task_type == "text":
             gen = self.generate_from_text(task)
@@ -241,7 +244,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
     
     def get_ref_infos(self, character, emotion) -> Tuple[str, str, str]:
         if self.debug_mode:
-            print(f"try to get ref infos, character: {character}, emotion: {emotion}")
+            logging.getLogger(__name__).debug(f"try to get ref infos, character: {character}, emotion: {emotion}")
         character_path = os.path.join(self.models_path, character)
         config: Dict[str, Any] = load_infer_config(character_path)
         emotion_dict: Dict = config.get("emotion_list", None)
