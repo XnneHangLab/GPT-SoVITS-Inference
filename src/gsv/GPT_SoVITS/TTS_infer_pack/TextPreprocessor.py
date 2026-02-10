@@ -8,6 +8,7 @@ sys.path.append(now_dir)
 import re
 import torch
 import LangSegment
+import logging
 
 from typing import Dict, List, Tuple
 from gsv.GPT_SoVITS.text.cleaner import clean_text
@@ -16,10 +17,10 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from gsv.GPT_SoVITS.TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
 from gsv.tools.i18n.i18n import I18nAuto
-import logging
 
 i18n = I18nAuto()
 punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+logger = logging.getLogger(__name__)
 
 def get_first(text:str) -> str:
     pattern = "[" + "".join(re.escape(sep) for sep in splits) + "]"
@@ -56,12 +57,12 @@ class TextPreprocessor:
         self.device = device
         
     def preprocess(self, text:str, lang:str, text_split_method:str)->List[Dict]:
-        logging.getLogger(__name__).debug(i18n("############ 切分文本 ############"))
+        logger.debug(i18n("############ 切分文本 ############"))
         text = self.replace_consecutive_punctuation(text) # 变量命名应该是写错了
         texts = self.pre_seg_text(text, lang, text_split_method)
         result = []
-        logging.getLogger(__name__).debug(i18n("############ 提取文本Bert特征 ############"))
-        for text in tqdm(texts):
+        logger.debug(i18n("############ 提取文本Bert特征 ############"))
+        for text in tqdm(texts, disable=not logger.isEnabledFor(logging.DEBUG)):
             phones, bert_features, norm_text = self.segment_and_extract_feature_for_text(text, lang)
             if phones is None:
                 continue
@@ -79,8 +80,8 @@ class TextPreprocessor:
         text = text.strip("\n")
         if (text[0] not in splits and len(get_first(text)) < 4): 
             text = "。" + text if lang != "en" else "." + text
-        logging.getLogger(__name__).debug(i18n("实际输入的目标文本:"))
-        logging.getLogger(__name__).debug(text)
+        logger.debug(i18n("实际输入的目标文本:"))
+        logger.debug(text)
         
         if text_split_method.startswith("auto_cut"):
             try:
@@ -120,8 +121,8 @@ class TextPreprocessor:
             else:
                 texts.append(text)
             
-        logging.getLogger(__name__).debug(i18n("实际输入的目标文本(切句后):"))
-        logging.getLogger(__name__).debug(texts)
+        logger.debug(i18n("实际输入的目标文本(切句后):"))
+        logger.debug(texts)
         return texts
     
     def segment_and_extract_feature_for_text(self, texts:list, language:str)->Tuple[list, torch.Tensor, str]:
@@ -243,6 +244,5 @@ class TextPreprocessor:
         pattern = f'([{punctuations}])([{punctuations}])+'
         result = re.sub(pattern, r'\1', text)
         return result
-
 
 

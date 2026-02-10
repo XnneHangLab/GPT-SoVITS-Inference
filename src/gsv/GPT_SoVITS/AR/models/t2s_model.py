@@ -4,6 +4,7 @@ import os, sys
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 from typing import List
+import logging
 import torch
 from tqdm import tqdm
 
@@ -25,6 +26,8 @@ from gsv.GPT_SoVITS.AR.modules.transformer import TransformerEncoderLayer
 from torch import nn
 from torch.nn import functional as F
 from torchmetrics.classification import MulticlassAccuracy
+
+logger = logging.getLogger(__name__)
 
 default_config = {
     "embedding_dim": 512,
@@ -450,7 +453,7 @@ class Text2SemanticDecoder(nn.Module):
         x_len = x.shape[1]
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
-        for _ in tqdm(range(1500)):
+        for _ in tqdm(range(1500), disable=not logger.isEnabledFor(logging.DEBUG)):
             y_emb = self.ar_audio_embedding(y)
             y_pos = self.ar_audio_position(y_emb)
             # x 和逐渐增长的 y 一起输入给模型
@@ -480,7 +483,7 @@ class Text2SemanticDecoder(nn.Module):
             )
 
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
-                print("use early stop num:", early_stop_num)
+                logger.debug("use early stop num: %s", early_stop_num)
                 stop = True
 
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
@@ -489,8 +492,8 @@ class Text2SemanticDecoder(nn.Module):
             if stop:
                 if prompts.shape[1] == y.shape[1]:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                    print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                    logger.debug("bad zero prediction")
+                logger.debug("T2S Decoding EOS [%s -> %s]", prefix_len, y.shape[1])
                 break
             # 本次生成的 semantic_ids 和之前的 y 构成新的 y
             # print(samples.shape)#[1,1]#第一个1是bs
@@ -608,7 +611,7 @@ class Text2SemanticDecoder(nn.Module):
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None]*y.shape[0]
-        for idx in tqdm(range(1500)):
+        for idx in tqdm(range(1500), disable=not logger.isEnabledFor(logging.DEBUG)):
             if idx == 0:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, xy_padding_mask)
             else:
@@ -654,7 +657,7 @@ class Text2SemanticDecoder(nn.Module):
                 
                 
             if (early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num) or idx==1499:
-                print("use early stop num:", early_stop_num)
+                logger.debug("use early stop num: %s", early_stop_num)
                 stop = True
                 for i, batch_index in enumerate(batch_idx_map):
                     batch_index = batch_idx_map[i]
@@ -667,8 +670,8 @@ class Text2SemanticDecoder(nn.Module):
             if stop:
                 if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                    print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                    logger.debug("bad zero prediction")
+                logger.debug("T2S Decoding EOS [%s -> %s]", prefix_len, y.shape[1])
                 break
 
             ####################### update next step ###################################
@@ -773,7 +776,7 @@ class Text2SemanticDecoder(nn.Module):
         xy_attn_mask = torch.concat([x_attn_mask_pad, y_attn_mask], dim=0).unsqueeze(0).expand(bsz*self.num_head, -1, -1).view(bsz, self.num_head, src_len, src_len).to(x.device)
         new_attn_mask = torch.zeros_like(xy_attn_mask, dtype=x.dtype)
         xy_attn_mask = new_attn_mask.masked_fill(xy_attn_mask, float("-inf"))
-        for idx in tqdm(range(1500)):
+        for idx in tqdm(range(1500), disable=not logger.isEnabledFor(logging.DEBUG)):
             if xy_attn_mask is not None:
                 xy_dec, k_cache, v_cache = self.t2s_transformer.process_prompt(xy_pos, xy_attn_mask, None)
             else:
@@ -794,7 +797,7 @@ class Text2SemanticDecoder(nn.Module):
             y = torch.concat([y, samples], dim=1)
 
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
-                print("use early stop num:", early_stop_num)
+                logger.debug("use early stop num: %s", early_stop_num)
                 stop = True
 
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
@@ -802,8 +805,8 @@ class Text2SemanticDecoder(nn.Module):
             if stop:
                 if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                    print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                    logger.debug("bad zero prediction")
+                logger.debug("T2S Decoding EOS [%s -> %s]", prefix_len, y.shape[1])
                 break
 
             ####################### update next step ###################################
