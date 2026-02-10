@@ -745,7 +745,7 @@ class TTS:
             def make_batch(batch_texts):
                 batch_data = []
                 logging.getLogger(__name__).debug(i18n("############ 提取文本Bert特征 ############"))
-                for text in tqdm(batch_texts):
+                for text in tqdm(batch_texts, disable=not logging.getLogger(__name__).isEnabledFor(logging.DEBUG)):
                     phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang)
                     if phones is None:
                         continue

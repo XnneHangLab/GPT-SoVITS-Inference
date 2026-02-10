@@ -1,5 +1,6 @@
 # modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/model/t2s_model.py
 import torch
+import logging
 from tqdm import tqdm
 
 from AR.models.utils import make_pad_mask
@@ -20,6 +21,8 @@ from AR.modules.transformer import TransformerEncoderLayer
 from torch import nn
 from torch.nn import functional as F
 from torchmetrics.classification import MulticlassAccuracy
+
+logger = logging.getLogger(__name__)
 
 default_config = {
     "embedding_dim": 512,
@@ -264,7 +267,7 @@ class Text2SemanticDecoder(nn.Module):
         x_len = x.shape[1]
         x_attn_mask = torch.zeros((x_len, x_len), dtype=torch.bool)
         stop = False
-        for _ in tqdm(range(1500)):
+        for _ in tqdm(range(1500), disable=not logger.isEnabledFor(logging.DEBUG)):
             y_emb = self.ar_audio_embedding(y)
             y_pos = self.ar_audio_position(y_emb)
             # x 和逐渐增长的 y 一起输入给模型
@@ -294,7 +297,7 @@ class Text2SemanticDecoder(nn.Module):
             )
 
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
-                print("use early stop num:", early_stop_num)
+                logger.debug("use early stop num: %s", early_stop_num)
                 stop = True
 
             if torch.argmax(logits, dim=-1)[0] == self.EOS or samples[0, 0] == self.EOS:
@@ -303,8 +306,8 @@ class Text2SemanticDecoder(nn.Module):
             if stop:
                 if prompts.shape[1] == y.shape[1]:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                    print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                    logger.debug("bad zero prediction")
+                logger.debug("T2S Decoding EOS [%s -> %s]", prefix_len, y.shape[1])
                 break
             # 本次生成的 semantic_ids 和之前的 y 构成新的 y
             # print(samples.shape)#[1,1]#第一个1是bs
@@ -388,7 +391,7 @@ class Text2SemanticDecoder(nn.Module):
         y_list = [None]*y.shape[0]
         batch_idx_map = list(range(y.shape[0]))
         idx_list = [None]*y.shape[0]
-        for idx in tqdm(range(1500)):
+        for idx in tqdm(range(1500), disable=not logger.isEnabledFor(logging.DEBUG)):
             
             xy_dec, _ = self.h((xy_pos, None), mask=xy_attn_mask, cache=cache)
             logits = self.ar_predict_layer(
@@ -433,7 +436,7 @@ class Text2SemanticDecoder(nn.Module):
                 
                 
             if early_stop_num != -1 and (y.shape[1] - prefix_len) > early_stop_num:
-                print("use early stop num:", early_stop_num)
+                logger.debug("use early stop num: %s", early_stop_num)
                 stop = True
                 
             if not (None in idx_list):
@@ -442,11 +445,11 @@ class Text2SemanticDecoder(nn.Module):
             if stop:
                 # if prompts.shape[1] == y.shape[1]:
                 #     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                #     print("bad zero prediction")
+                #     logger.debug("bad zero prediction")
                 if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
-                    print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                    logger.debug("bad zero prediction")
+                logger.debug("T2S Decoding EOS [%s -> %s]", prefix_len, y.shape[1])
                 break
             
             ####################### update next step ###################################

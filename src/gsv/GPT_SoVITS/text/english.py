@@ -1,6 +1,7 @@
 import pickle
 import os
 import re
+import logging
 import wordsegment
 from g2p_en import G2p
 
@@ -21,6 +22,7 @@ CMU_DICT_FAST_PATH = os.path.join(current_file_path, "cmudict-fast.rep")
 CMU_DICT_HOT_PATH = os.path.join(current_file_path, "engdict-hot.rep")
 CACHE_PATH = os.path.join(current_file_path, "engdict_cache.pickle")
 NAMECACHE_PATH = os.path.join(current_file_path, "namedict_cache.pickle")
+logger = logging.getLogger(__name__)
 
 arpa = {
     "AH0",
@@ -106,7 +108,7 @@ def replace_phs(phs):
         elif ph in rep_map.keys():
             phs_new.append(rep_map[ph])
         else:
-            print("ph not in symbols: ", ph)
+            logger.debug("ph not in symbols: %s", ph)
     return phs_new
 
 
