@@ -10,6 +10,7 @@ from urllib import parse
 from datetime import datetime
 from typing import Union, Generator, Tuple, Any, Optional, Dict, Literal
 import numpy as np
+from pydantic import ConfigDict
 import soundfile as sf
 
 class Remote_Synthesizer(Base_TTS_Synthesizer):
@@ -17,8 +18,7 @@ class Remote_Synthesizer(Base_TTS_Synthesizer):
     tts_endpoint:str = "/tts"
     character_endpoint:str = "/character_list"
     based_synthesizer :str = "gsv_fast"
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
     def __init__(self, config_path:str = None, **kwargs):
         super().__init__(**kwargs)
         if config_path is None:

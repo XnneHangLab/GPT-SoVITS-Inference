@@ -3,6 +3,19 @@ import json
 import locale
 from pathlib import Path
 
+
+def detect_default_language() -> str | None:
+    language, _encoding = locale.getlocale()
+    if language:
+        return language
+    try:
+        locale.setlocale(locale.LC_CTYPE, "")
+    except locale.Error:
+        return None
+    language, _encoding = locale.getlocale()
+    return language
+
+
 def load_language_list(language, locale_paths):
     language_map = {}
     for locale_path in locale_paths:
@@ -15,7 +28,7 @@ def load_language_list(language, locale_paths):
 class I18nAuto:
     def __init__(self, language=None, locale_paths=[], locale_path=str(Path(__file__).parent.parent.parent.parent.parent / "i18n" / "locale")):
         if language in ["auto", None]:
-            language = locale.getdefaultlocale()[0]
+            language = detect_default_language()
         if not any(os.path.exists(os.path.join(locale_path, f"{language}.json")) for locale_path in locale_paths):
             language = "zh_CN"
         self.language = language

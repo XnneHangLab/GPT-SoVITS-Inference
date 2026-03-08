@@ -5,7 +5,7 @@ from typing import Literal
 import urllib.parse
 import hashlib
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal, List, Optional, Dict, Any, Union
 from uuid import uuid4
 import hashlib
@@ -129,9 +129,7 @@ class Base_TTS_Task(BaseModel):
 
     disabled_features: Optional[List[str]] = None
 
-    class Config:
-        populate_by_name = True
-        extra = "ignore"
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     def __init__(self, other_task: Union[BaseModel, dict, None] = None, **data):
         if isinstance(other_task, BaseModel):

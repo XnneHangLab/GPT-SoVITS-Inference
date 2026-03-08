@@ -47,15 +47,14 @@ def get_ui_config(based_synthesizer:str= None)->Dict[str, Any]:
     except:
         raise FileNotFoundError("ui_config.json not found or invalid.")
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from copy import deepcopy
 class Remote_TTS_Task(Base_TTS_Task):
     
     is_remote: Optional[bool] = True
     data : dict = {}
     
-    class Config:
-        extra = "ignore"
+    model_config = ConfigDict(extra="ignore")
     
     def __init__(self, based_synthesizer:str=None, **data):
         
@@ -78,5 +77,4 @@ class Remote_TTS_Task(Base_TTS_Task):
     def __str__(self):
         content = super().__str__()
         return f"{content}"
-
 
