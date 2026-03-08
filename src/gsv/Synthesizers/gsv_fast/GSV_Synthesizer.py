@@ -47,6 +47,34 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
     tts_pipline:TTS = None
     character:str = None
 
+    def _resolve_initial_tts_paths(self) -> dict[str, Any]:
+        config: dict[str, Any] = {
+            "device": self.device,
+            "is_half": self.is_half,
+            "bert_base_path": self.bert_base_path,
+            "cnhubert_base_path": self.cnhubert_base_path,
+        }
+        if self.default_character in ["", None]:
+            return config
+
+        character_path = os.path.join(self.models_path, self.default_character)
+        infer_config_path = os.path.join(character_path, "infer_config.json")
+        if not os.path.exists(infer_config_path):
+            return config
+
+        try:
+            infer_config = load_infer_config(character_path)
+        except Exception:
+            return config
+
+        gpt_path = infer_config.get("gpt_path")
+        sovits_path = infer_config.get("sovits_path")
+        if gpt_path:
+            config["t2s_weights_path"] = os.path.join(character_path, gpt_path)
+        if sovits_path:
+            config["vits_weights_path"] = os.path.join(character_path, sovits_path)
+        return config
+
     def __init__(self, config_path:str=None, **kwargs):
         super().__init__()
 
@@ -61,10 +89,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             logging.getLogger(__name__).debug(f"GSV_Synthesizer config: {config_dict}")
 
         self.device, self.is_half = get_device_info(self.device, self.is_half)
-        tts_config = TTS_Config("")
-        tts_config.device , tts_config.is_half = self.device, self.is_half
-        tts_config.cnhubert_base_path = self.cnhubert_base_path
-        tts_config.bert_base_path = self.bert_base_path
+        tts_config = TTS_Config({"custom": self._resolve_initial_tts_paths()})
         self.tts_pipline = TTS(tts_config)
 
         if self.default_character is None:
