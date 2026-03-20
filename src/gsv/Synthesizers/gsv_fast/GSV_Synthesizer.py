@@ -1,5 +1,6 @@
 import io, wave
 import os, json, sys
+import logging
 from pathlib import Path
 from typing import Any, Union, Generator, Literal, List, Dict, Tuple
 from gsv.Synthesizers.base import Base_TTS_Synthesizer, load_config
@@ -15,7 +16,7 @@ import soundfile as sf
 from .gsv_config import load_infer_config, auto_generate_infer_config, get_device_info
 from datetime import datetime
 
-import logging
+from loguru import logger
 
 dict_language = {
     "中文": "all_zh",#全部按中文识别
@@ -33,6 +34,8 @@ dict_language = {
 }
 
 from gsv.GPT_SoVITS.TTS_infer_pack.TTS import TTS, TTS_Config
+
+_tts_logger = logger.bind(group="tts")
 class GSV_Synthesizer(Base_TTS_Synthesizer):
     device: str = "auto"
     is_half: bool = False
@@ -86,16 +89,25 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             if hasattr(self, key):
                 setattr(self, key, value)
         if self.debug_mode:
-            logging.getLogger(__name__).debug(f"GSV_Synthesizer config: {config_dict}")
+            _tts_logger.debug("gsv synthesizer config loaded: {}", config_dict)
 
         self.device, self.is_half = get_device_info(self.device, self.is_half)
+        _tts_logger.info(
+            "gsv synthesizer construct: resolve device done (device={}, is_half={})",
+            self.device,
+            self.is_half,
+        )
         tts_config = TTS_Config({"custom": self._resolve_initial_tts_paths()})
+        _tts_logger.info("gsv synthesizer construct: init TTS pipeline start")
         self.tts_pipline = TTS(tts_config)
+        _tts_logger.info("gsv synthesizer construct: init TTS pipeline done")
 
         if self.default_character is None:
             self.default_character = next(iter(self.get_characters()), None)
         logging.getLogger(__name__).debug(f"默认角色: {self.default_character}")
+        _tts_logger.info("gsv synthesizer construct: load default character start ({})", self.default_character)
         self.load_character(self.default_character)
+        _tts_logger.info("gsv synthesizer construct: load default character done ({})", self.character)
         # XnneHang 这里是为了兼容不在根目录运行的情况
         ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
         with open(ui_config_path, 'r', encoding='utf-8') as f:
@@ -198,9 +210,14 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         self.character = character
 
         t0 = tt()
+        _tts_logger.info("gsv load_character: Text2Semantic load start ({})", gpt_path)
         self.tts_pipline.init_t2s_weights(gpt_path)
+        _tts_logger.info("gsv load_character: Text2Semantic load done")
+        _tts_logger.info("gsv load_character: VITS load start ({})", sovits_path)
         self.tts_pipline.init_vits_weights(sovits_path)
+        _tts_logger.info("gsv load_character: VITS load done")
         t1 = tt()
+        _tts_logger.info("gsv load_character: character ready ({}, {:.2f}s)", character, t1 - t0)
         logging.getLogger(__name__).debug(f"加载角色成功: {character}, 耗时: {t1-t0:.2f}s")
 
     def generate_from_text(self, task: TTS_Task):
@@ -247,18 +264,22 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             gen = self.generate_from_text(task)
         elif task.task_type == "ssml":
             gen = self.generate_from_ssml(task)
+        _tts_logger.info("gsv generate: generator created (task_type={}, return_type={})", task.task_type, return_type)
 
         if return_type == "numpy":
             return gen
         elif return_type == "filepath":
             if save_path is None:
                 save_path = f"cache/gpt_sovits/{datetime.now().strftime('%Y%m%d%H%M%S')}.{task.format}"
+            _tts_logger.info("gsv generate: advance generator via next()")
             sr, audio_data = next(gen)
+            _tts_logger.info("gsv generate: first yield reached (sample_rate={})", sr)
             from pathlib import Path
             path = Path(save_path)
             path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
             sf.write(save_path, audio_data, sr)
             del audio_data
+            _tts_logger.info("gsv generate: audio file ready ({})", save_path)
             return save_path
         
     @staticmethod

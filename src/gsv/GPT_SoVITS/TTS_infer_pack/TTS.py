@@ -2,7 +2,6 @@ from copy import deepcopy
 import math
 import os, sys
 import random
-import traceback
 
 from tqdm import tqdm
 now_dir = os.getcwd()
@@ -31,7 +30,10 @@ import logging
 
 
 import pickle
+from loguru import logger
+
 i18n = I18nAuto()
+_tts_logger = logger.bind(group="tts")
 
 # configs/tts_infer.yaml
 """
@@ -58,7 +60,7 @@ def set_seed(seed:int):
     seed = int(seed)
     seed = seed if seed != -1 else random.randrange(1 << 32)
 
-    logging.getLogger(__name__).debug(f"Set seed to {seed}")
+    _tts_logger.debug("gsv run: set seed to {}", seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -98,7 +100,7 @@ class TTS_Config:
             if not os.path.exists(self.configs_path):
                 self.save_configs()
                 
-                logging.getLogger(__name__).info(f"Create default config file at {self.configs_path}")
+                _tts_logger.info("gsv config: created default config file at {}", self.configs_path)
             configs:dict = {"default": deepcopy(self.default_configs)}
         
         if isinstance(configs, str):
@@ -123,17 +125,16 @@ class TTS_Config:
         
         if (self.t2s_weights_path in [None, ""]) or (not os.path.exists(self.t2s_weights_path)):
             self.t2s_weights_path = self.default_configs['t2s_weights_path']
-            print(f"fall back to default t2s_weights_path: {self.t2s_weights_path}")
-            logging.getLogger(__name__).info(f"fall back to default t2s_weights_path: {self.t2s_weights_path}")
+            _tts_logger.warning("gsv config: fallback to default Text2Semantic weights ({})", self.t2s_weights_path)
         if (self.vits_weights_path in [None, ""]) or (not os.path.exists(self.vits_weights_path)):
             self.vits_weights_path = self.default_configs['vits_weights_path']
-            print(f"fall back to default vits_weights_path: {self.vits_weights_path}")
+            _tts_logger.warning("gsv config: fallback to default VITS weights ({})", self.vits_weights_path)
         if (self.bert_base_path in [None, ""]) or (not os.path.exists(self.bert_base_path)):
             self.bert_base_path = self.default_configs['bert_base_path']
-            print(f"fall back to default bert_base_path: {self.bert_base_path}")
+            _tts_logger.warning("gsv config: fallback to default BERT path ({})", self.bert_base_path)
         if (self.cnhubert_base_path in [None, ""]) or (not os.path.exists(self.cnhubert_base_path)):
             self.cnhubert_base_path = self.default_configs['cnhubert_base_path']
-            print(f"fall back to default cnhubert_base_path: {self.cnhubert_base_path}")
+            _tts_logger.warning("gsv config: fallback to default CNHuBERT path ({})", self.cnhubert_base_path)
         self.update_configs()
 
         self.max_sec = None
@@ -198,6 +199,7 @@ class TTS_Config:
 
 class TTS:
     def __init__(self, configs: Union[dict, str, TTS_Config]):
+        _tts_logger.info("gsv TTS pipeline init: start")
         if isinstance(configs, TTS_Config):
             self.configs = configs
         else:
@@ -231,18 +233,23 @@ class TTS:
         
         self.stop_flag:bool = False
         self.precision:torch.dtype = torch.float16 if self.configs.is_half else torch.float32
+        _tts_logger.info("gsv TTS pipeline init: done")
 
     def _init_models(self,):
         # self.init_t2s_weights(self.configs.t2s_weights_path)
         # self.init_vits_weights(self.configs.vits_weights_path)
+        _tts_logger.info("gsv TTS pipeline init: load BERT start")
         self.init_bert_weights(self.configs.bert_base_path)
+        _tts_logger.info("gsv TTS pipeline init: load BERT done")
+        _tts_logger.info("gsv TTS pipeline init: load CNHuBERT start")
         self.init_cnhuhbert_weights(self.configs.cnhubert_base_path)
+        _tts_logger.info("gsv TTS pipeline init: load CNHuBERT done")
         # self.enable_half_precision(self.configs.is_half)
         
         
         
     def init_cnhuhbert_weights(self, base_path: str):
-        print(f"Loading CNHuBERT weights from {base_path}")
+        _tts_logger.debug("gsv load CNHuBERT: path={}", base_path)
         self.cnhuhbert_model = CNHubert(base_path)
         self.cnhuhbert_model=self.cnhuhbert_model.eval()
         self.cnhuhbert_model = self.cnhuhbert_model.to(self.configs.device)
@@ -252,7 +259,7 @@ class TTS:
         
         
     def init_bert_weights(self, base_path: str):
-        print(f"Loading BERT weights from {base_path}")
+        _tts_logger.debug("gsv load BERT: path={}", base_path)
         self.bert_tokenizer = AutoTokenizer.from_pretrained(base_path)
         self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
         self.bert_model=self.bert_model.eval()
@@ -261,7 +268,7 @@ class TTS:
             self.bert_model = self.bert_model.half()
         
     def init_vits_weights(self, weights_path: str):
-        print(f"Loading VITS weights from {weights_path}")
+        _tts_logger.debug("gsv load VITS: path={}", weights_path)
         self.configs.vits_weights_path = weights_path
         self.configs.save_configs()
         import sys
@@ -297,7 +304,7 @@ class TTS:
 
         
     def init_t2s_weights(self, weights_path: str):
-        print(f"Loading Text2Semantic weights from {weights_path}")
+        _tts_logger.debug("gsv load Text2Semantic: path={}", weights_path)
         self.configs.t2s_weights_path = weights_path
         self.configs.save_configs()
         self.configs.hz = 50
@@ -320,7 +327,7 @@ class TTS:
                 
         '''
         if str(self.configs.device) == "cpu" and enable:
-            print("Half precision is not supported on CPU.")
+            _tts_logger.warning("gsv TTS pipeline: half precision is not supported on CPU")
             return
         
         self.configs.is_half = enable
@@ -369,8 +376,11 @@ class TTS:
             Args:
                 ref_audio_path: str, the path of the reference audio.
         '''
+        started = ttime()
+        _tts_logger.info("gsv set_ref_audio: start ({})", ref_audio_path)
         self._set_prompt_semantic(ref_audio_path)
         self._set_ref_spec(ref_audio_path)
+        _tts_logger.info("gsv set_ref_audio: done ({:.2f}s)", ttime() - started)
         
     def _set_ref_spec(self, ref_audio_path):
         audio = load_audio(ref_audio_path, int(self.configs.sampling_rate))
@@ -636,6 +646,21 @@ class TTS:
         actual_seed = set_seed(seed)
         parallel_infer = inputs.get("parallel_infer", True)
         repetition_penalty = inputs.get("repetition_penalty", 1.35)
+        _tts_logger.info(
+            "gsv run: start (stream={}, text_lang={}, prompt_lang={}, batch_size={})",
+            return_fragment,
+            text_lang,
+            prompt_lang,
+            batch_size,
+        )
+        _tts_logger.debug(
+            "gsv run: params seed={} actual_seed={} split_method={} parallel_infer={} prompt_cache_path={}",
+            seed,
+            actual_seed,
+            text_split_method,
+            parallel_infer,
+            prompt_cache_path,
+        )
 
         if parallel_infer:
             logging.getLogger(__name__).debug(i18n("并行推理模式已开启"))
@@ -718,8 +743,10 @@ class TTS:
 
         data:list = None
         if not return_fragment:
+            _tts_logger.info("gsv run: text preprocess start")
             data = self.text_preprocessor.preprocess(text, text_lang, text_split_method)
             if len(data) == 0:
+                _tts_logger.warning("gsv run: text preprocess produced no segments")
                 yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
                                                             dtype=np.int16)
                 return
@@ -733,14 +760,17 @@ class TTS:
                                 device=self.configs.device,
                                 precision=self.precision
                                 )
+            _tts_logger.info("gsv run: text preprocess done (batches={})", len(data))
         else:
             logging.getLogger(__name__).debug(i18n("############ 切分文本 ############"))
+            _tts_logger.info("gsv run: text preprocess start")
             texts = self.text_preprocessor.pre_seg_text(text, text_lang, text_split_method)
             data = []
             for i in range(len(texts)):
                 if i%batch_size == 0:
                     data.append([])
                 data[-1].append(texts[i])
+            _tts_logger.info("gsv run: text preprocess done (fragment_batches={})", len(data))
             
             def make_batch(batch_texts):
                 batch_data = []
@@ -769,8 +799,10 @@ class TTS:
 
 
         t2 = ttime()
+        first_yield_logged = False
         try:
             logging.getLogger(__name__).info(i18n("############ 推理 ############"))
+            _tts_logger.info("gsv run: t2s infer start")
             ###### inference ######
             t_34 = 0.0
             t_45 = 0.0
@@ -842,9 +874,11 @@ class TTS:
                 audio_frag_end_idx = [ sum(audio_frag_idx[:i+1]) for i in range(0, len(audio_frag_idx))]
                 all_pred_semantic = torch.cat(pred_semantic_list).unsqueeze(0).unsqueeze(0).to(self.configs.device)
                 _batch_phones = torch.cat(batch_phones).unsqueeze(0).to(self.configs.device)
+                _tts_logger.info("gsv run: vits decode start")
                 _batch_audio_fragment = (self.vits_model.decode(
                         all_pred_semantic, _batch_phones, refer_audio_spec
                     ).detach()[0, 0, :])
+                _tts_logger.info("gsv run: vits decode done")
                 audio_frag_end_idx.insert(0, 0)
                 batch_audio_fragment= [_batch_audio_fragment[audio_frag_end_idx[i-1]:audio_frag_end_idx[i]] for i in range(1, len(audio_frag_end_idx))]
 
@@ -863,33 +897,54 @@ class TTS:
                 t_45 += t5 - t4
                 if return_fragment:
                     logging.getLogger(__name__).info("############ 各阶段耗时: 处理参考音频 [%.3f]s, 文本处理 [%.3f]s, t2s_model [%.3f]s, vits_model [%.3f]s ############" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
-                    yield self.audio_postprocess([batch_audio_fragment], 
+                    _tts_logger.info("gsv run: audio_postprocess start")
+                    output = self.audio_postprocess([batch_audio_fragment], 
                                                     self.configs.sampling_rate, 
                                                     None, 
                                                     speed_factor, 
                                                     False,
                                                     fragment_interval
                                                     )
+                    _tts_logger.info("gsv run: audio_postprocess done")
+                    if not first_yield_logged:
+                        _tts_logger.info("gsv run: first yield reached")
+                        first_yield_logged = True
+                    yield output
                 else:
                     audio.append(batch_audio_fragment)
 
                 if self.stop_flag:
+                    _tts_logger.warning("gsv run: stop flag detected, return silence")
                     yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
                                                             dtype=np.int16)
                     return
 
+            _tts_logger.info("gsv run: t2s infer done")
             if not return_fragment:
                 logging.getLogger(__name__).info("############ 各阶段耗时: 处理参考音频 [%.3f]s, 文本处理 [%.3f]s, t2s_model [%.3f]s, vits_model [%.3f]s ############" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
-                yield self.audio_postprocess(audio, 
+                _tts_logger.info("gsv run: audio_postprocess start")
+                output = self.audio_postprocess(audio, 
                                                 self.configs.sampling_rate, 
                                                 batch_index_list, 
                                                 speed_factor, 
                                                 split_bucket,
                                                 fragment_interval
                                                 )
+                _tts_logger.info("gsv run: audio_postprocess done")
+                if not first_yield_logged:
+                    _tts_logger.info("gsv run: first yield reached")
+                    first_yield_logged = True
+                _tts_logger.debug(
+                    "gsv run: stage timings ref={:.3f}s preprocess={:.3f}s t2s={:.3f}s vits={:.3f}s",
+                    t1 - t0,
+                    t2 - t1,
+                    t_34,
+                    t_45,
+                )
+                yield output
 
         except Exception as e:
-            traceback.print_exc()
+            _tts_logger.exception("gsv run: inference failed, reloading Text2Semantic/VITS weights")
             # 必须返回一个空音频, 否则会导致显存不释放。
             yield self.configs.sampling_rate, np.zeros(int(self.configs.sampling_rate),
                                                             dtype=np.int16)
@@ -951,7 +1006,7 @@ class TTS:
             if speed_factor != 1.0:
                 audio = speed_change(audio, speed=speed_factor, sr=int(sr))
         except Exception as e:
-            logging.getLogger(__name__).warning(f"Failed to change speed of audio: \n{e}")
+            _tts_logger.warning("gsv audio_postprocess: failed to change speed: {}", e)
         
         return sr, audio
        

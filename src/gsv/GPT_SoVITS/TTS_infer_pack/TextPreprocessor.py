@@ -17,9 +17,11 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from gsv.GPT_SoVITS.TTS_infer_pack.text_segmentation_method import split_big_text, splits, get_method as get_seg_method
 
 from gsv.tools.i18n.i18n import I18nAuto
+from loguru import logger
 
 i18n = I18nAuto()
 punctuation = set(['!', '?', '…', ',', '.', '-'," "])
+_tts_logger = logger.bind(group="tts")
 logger = logging.getLogger(__name__)
 
 def get_first(text:str) -> str:
