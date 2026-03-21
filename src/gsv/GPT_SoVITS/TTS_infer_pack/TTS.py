@@ -83,12 +83,15 @@ class TTS_Config:
     default_configs={
                 "device": "cpu",
                 "is_half": False,
+                "version": "v1",
                 "t2s_weights_path": "GPT_SoVITS/pretrained_models/s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt",
                 "vits_weights_path": "GPT_SoVITS/pretrained_models/s2G488k.pth",
                 "cnhubert_base_path": "GPT_SoVITS/pretrained_models/chinese-hubert-base",
                 "bert_base_path": "GPT_SoVITS/pretrained_models/chinese-roberta-wwm-ext-large",
             }
     configs:dict = None
+    v1_languages:list = ["auto", "en", "zh", "ja",  "all_zh", "all_ja"]
+    v2_languages:list = ["auto", "auto_yue", "en", "zh", "ja", "yue", "ko", "all_zh", "all_ja", "all_yue", "all_ko"]
     def __init__(self, configs: Union[dict, str]=None):
         
         # 设置默认配置文件路径
@@ -117,6 +120,7 @@ class TTS_Config:
         
         self.device = self.configs.get("device", torch.device("cpu"))
         self.is_half = self.configs.get("is_half", False)
+        self.version = self.configs.get("version", "v1")
         self.t2s_weights_path = self.configs.get("t2s_weights_path", None)
         self.vits_weights_path = self.configs.get("vits_weights_path", None)
         self.bert_base_path = self.configs.get("bert_base_path", None)
@@ -147,7 +151,7 @@ class TTS_Config:
         self.win_length:int = 2048
         self.n_speakers:int = 300
         
-        self.languages:list = ["auto", "en", "zh", "ja",  "all_zh", "all_ja"]
+        self.languages:list = self.v1_languages if self.version == "v1" else self.v2_languages
 
             
     def _load_configs(self, configs_path: str)->dict:
@@ -172,12 +176,17 @@ class TTS_Config:
         self.config = {
             "device"             : str(self.device),
             "is_half"            : self.is_half,
+            "version"            : self.version,
             "t2s_weights_path"   : self.t2s_weights_path,
             "vits_weights_path"  : self.vits_weights_path,
             "bert_base_path"     : self.bert_base_path,
             "cnhubert_base_path": self.cnhubert_base_path,
         }
         return self.config
+
+    def update_version(self, version: str):
+        self.version = version
+        self.languages = self.v1_languages if self.version == "v1" else self.v2_languages
             
     def __str__(self):
         self.configs = self.update_configs()
@@ -277,13 +286,33 @@ class TTS:
 
         dict_s2 = torch.load(weights_path, map_location=self.configs.device,weights_only=False)
         hps = dict_s2["config"]
+        model_config = hps["model"]
+
+        def _config_get(config_obj, key, default=None):
+            if hasattr(config_obj, "get"):
+                return config_obj.get(key, default)
+            try:
+                return config_obj[key]
+            except Exception:
+                return getattr(config_obj, key, default)
+
+        hps["model"]["semantic_frame_rate"] = _config_get(model_config, "semantic_frame_rate", "25hz")
+        text_embedding_weight = dict_s2["weight"].get("enc_p.text_embedding.weight")
+        detected_version = "v1"
+        if text_embedding_weight is None or text_embedding_weight.shape[0] != 322:
+            detected_version = "v2"
+        hps["model"]["version"] = _config_get(model_config, "version", detected_version)
+        if hps["model"]["version"] not in {"v1", "v2"}:
+            hps["model"]["version"] = detected_version
+
         self.configs.filter_length = hps["data"]["filter_length"]
         self.configs.segment_size = hps["train"]["segment_size"]
         self.configs.sampling_rate = hps["data"]["sampling_rate"]       
         self.configs.hop_length = hps["data"]["hop_length"]
         self.configs.win_length = hps["data"]["win_length"]
         self.configs.n_speakers = hps["data"]["n_speakers"]
-        self.configs.semantic_frame_rate = "25hz"
+        self.configs.semantic_frame_rate = hps["model"]["semantic_frame_rate"]
+        self.configs.update_version(hps["model"]["version"])
         kwargs = hps["model"]
         vits_model = SynthesizerTrn(
             self.configs.filter_length // 2 + 1,

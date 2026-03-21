@@ -59,8 +59,20 @@ def get_device_info(device_config="auto", is_half_config="auto")-> tuple[str, bo
 
 
 
+def get_infer_config_path(character_path):
+    infer_config_path = os.path.join(character_path, "infer_config.json")
+    if os.path.exists(infer_config_path):
+        return infer_config_path
+
+    infer_json_path = os.path.join(character_path, "infer.json")
+    if os.path.exists(infer_json_path):
+        return infer_json_path
+
+    return infer_config_path
+
+
 def load_infer_config(character_path):
-    config_path = os.path.join(character_path, "infer_config.json")
+    config_path = get_infer_config_path(character_path)
     """加载环境配置文件"""
     with open(config_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
