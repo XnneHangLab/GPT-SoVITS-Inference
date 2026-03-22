@@ -898,18 +898,34 @@ class TTS:
 
                 # ## vits并行推理 method 2
                 pred_semantic_list = [item[-idx:] for item, idx in zip(pred_semantic_list, idx_list)]
-                upsample_rate = math.prod(self.vits_model.upsample_rates)
-                audio_frag_idx = [pred_semantic_list[i].shape[0]*2*upsample_rate for i in range(0, len(pred_semantic_list))]
-                audio_frag_end_idx = [ sum(audio_frag_idx[:i+1]) for i in range(0, len(audio_frag_idx))]
-                all_pred_semantic = torch.cat(pred_semantic_list).unsqueeze(0).unsqueeze(0).to(self.configs.device)
-                _batch_phones = torch.cat(batch_phones).unsqueeze(0).to(self.configs.device)
-                _tts_logger.info("gsv run: vits decode start")
-                _batch_audio_fragment = (self.vits_model.decode(
-                        all_pred_semantic, _batch_phones, refer_audio_spec
-                    ).detach()[0, 0, :])
-                _tts_logger.info("gsv run: vits decode done")
-                audio_frag_end_idx.insert(0, 0)
-                batch_audio_fragment= [_batch_audio_fragment[audio_frag_end_idx[i-1]:audio_frag_end_idx[i]] for i in range(1, len(audio_frag_end_idx))]
+                if parallel_infer:
+                    upsample_rate = math.prod(self.vits_model.upsample_rates)
+                    audio_frag_idx = [
+                        pred_semantic_list[i].shape[0] * 2 * upsample_rate for i in range(0, len(pred_semantic_list))
+                    ]
+                    audio_frag_end_idx = [sum(audio_frag_idx[: i + 1]) for i in range(0, len(audio_frag_idx))]
+                    all_pred_semantic = torch.cat(pred_semantic_list).unsqueeze(0).unsqueeze(0).to(self.configs.device)
+                    _batch_phones = torch.cat(batch_phones).unsqueeze(0).to(self.configs.device)
+                    _tts_logger.info("gsv run: vits decode start")
+                    _batch_audio_fragment = (
+                        self.vits_model.decode(all_pred_semantic, _batch_phones, refer_audio_spec).detach()[0, 0, :]
+                    )
+                    _tts_logger.info("gsv run: vits decode done")
+                    audio_frag_end_idx.insert(0, 0)
+                    batch_audio_fragment = [
+                        _batch_audio_fragment[audio_frag_end_idx[i - 1] : audio_frag_end_idx[i]]
+                        for i in range(1, len(audio_frag_end_idx))
+                    ]
+                else:
+                    _tts_logger.info("gsv run: vits decode start")
+                    for i, idx in enumerate(idx_list):
+                        phones = batch_phones[i].unsqueeze(0).to(self.configs.device)
+                        _pred_semantic = pred_semantic_list[i][-idx:].unsqueeze(0).unsqueeze(0).to(self.configs.device)
+                        audio_fragment = (
+                            self.vits_model.decode(_pred_semantic, phones, refer_audio_spec).detach()[0, 0, :]
+                        )
+                        batch_audio_fragment.append(audio_fragment)
+                    _tts_logger.info("gsv run: vits decode done")
 
                 # ## vits串行推理
                 # for i, idx in enumerate(idx_list):

@@ -38,7 +38,7 @@ class GSV_TTS_Task(Base_TTS_Task):
     max_cut_length: Optional[int] = None
     seed: Optional[int] = None
     save_temp: Optional[bool] = False
-    parallel_infer : Optional[bool] = True
+    parallel_infer : Optional[bool] = False
     repetition_penalty : Optional[float] = 1.35
     # the gsv_fast model only supports 32000 sample rate
     sample_rate: int = 32000
