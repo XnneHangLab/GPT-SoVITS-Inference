@@ -13,7 +13,12 @@ import numpy as np
 import hashlib  
 import soundfile as sf
 
-from .gsv_config import load_infer_config, auto_generate_infer_config, get_device_info
+from .gsv_config import (
+    load_infer_config,
+    auto_generate_infer_config,
+    get_device_info,
+    get_infer_config_path,
+)
 from datetime import datetime
 
 from loguru import logger
@@ -44,7 +49,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
     bert_base_path:str = "bert/chinese-roberta-wwm-ext-large"
     save_prompt_cache:bool = True
     prompt_cache_dir:str = "cache/prompt_cache"
-    default_character:str = "elaina"
+    default_character:str | None = None
 
     ui_config:dict = None
     tts_pipline:TTS = None
@@ -61,7 +66,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             return config
 
         character_path = os.path.join(self.models_path, self.default_character)
-        infer_config_path = os.path.join(character_path, "infer_config.json")
+        infer_config_path = get_infer_config_path(character_path)
         if not os.path.exists(infer_config_path):
             return config
 
@@ -97,22 +102,23 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             self.device,
             self.is_half,
         )
+        ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
+        with open(ui_config_path, 'r', encoding='utf-8') as f:
+            self.ui_config = json.load(f)
         tts_config = TTS_Config({"custom": self._resolve_initial_tts_paths()})
         _tts_logger.info("gsv synthesizer construct: init TTS pipeline start")
         self.tts_pipline = TTS(tts_config)
         _tts_logger.info("gsv synthesizer construct: init TTS pipeline done")
 
-        if self.default_character is None:
-            self.default_character = next(iter(self.get_characters()), None)
+        characters = self.get_characters()
+        if self.default_character not in characters:
+            self.default_character = next(iter(characters), None)
         logging.getLogger(__name__).debug(f"默认角色: {self.default_character}")
         _tts_logger.info("gsv synthesizer construct: load default character start ({})", self.default_character)
-        self.load_character(self.default_character)
+        if self.default_character is not None:
+            self.load_character(self.default_character)
         _tts_logger.info("gsv synthesizer construct: load default character done ({})", self.character)
         # XnneHang 这里是为了兼容不在根目录运行的情况
-        ui_config_path = str(Path(__file__).parent / "configs" / "ui_config.json")
-        with open(ui_config_path, 'r', encoding='utf-8') as f:
-            self.ui_config = json.load(f)
-
     # from https://github.com/RVC-Boss/GPT-SoVITS/pull/448
     def get_streaming_tts_wav(self, params):
         # from https://huggingface.co/spaces/coqui/voice-chat-with-mistral/blob/main/app.py
@@ -143,9 +149,11 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         logging.getLogger(__name__).debug(f"get_characters trained模型地址: {os.environ.get('models_path', 'models/gptsovits')}")
 
         # 遍历模型路径下的所有文件夹
+        if not os.path.isdir(self.models_path):
+            return characters_and_emotions
         for character_subdir in os.listdir(self.models_path):
             subdir_path = os.path.join(self.models_path, character_subdir)
-            config_path = os.path.join(subdir_path, "infer_config.json")
+            config_path = get_infer_config_path(subdir_path)
             if not os.path.isdir(subdir_path):
                 continue
             # 检查路径是否为文件夹并存在配置文件
@@ -316,16 +324,16 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         ref_audio_path=None,
         prompt_text=None,
         prompt_language="auto",
-        batch_size=1,
+        batch_size=20,
         speed=1.0,
-        top_k=12,
-        top_p=0.6,
-        temperature=0.6,
+        top_k=5,
+        top_p=1.0,
+        temperature=1.0,
         cut_method="auto_cut",
         max_cut_length=100,
         seed=-1,
         stream=False,
-        parallel_infer=True,
+        parallel_infer=False,
         repetition_penalty=1.35,
         **kwargs
     ):
@@ -368,7 +376,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             "batch_size": batch_size,
             "speed_factor": speed,
             "ref_text_free": ref_free,
-            "split_bucket":True,
+            "split_bucket": False,
             "return_fragment":stream,
             "seed": seed,
             "parallel_infer": parallel_infer,
