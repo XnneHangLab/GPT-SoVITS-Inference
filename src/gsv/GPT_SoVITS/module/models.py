@@ -1,4 +1,5 @@
 import copy
+import importlib
 import math
 from typing import List
 import torch
@@ -14,8 +15,8 @@ from gsv.GPT_SoVITS.module.quantize import ResidualVectorQuantizer
 
 from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from gsv.GPT_SoVITS.text import symbols as symbols_v1
-from gsv.GPT_SoVITS.text import symbols2 as symbols_v2
+symbols_v1 = importlib.import_module("gsv.GPT_SoVITS.text.symbols")
+symbols_v2 = importlib.import_module("gsv.GPT_SoVITS.text.symbols2")
 from torch.cuda.amp import autocast
 import contextlib
 
