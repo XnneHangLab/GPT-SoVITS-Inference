@@ -333,7 +333,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         max_cut_length=100,
         seed=-1,
         stream=False,
-        parallel_infer=False,
+        parallel_infer=True,
         repetition_penalty=1.35,
         **kwargs
     ):
@@ -376,7 +376,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
             "batch_size": batch_size,
             "speed_factor": speed,
             "ref_text_free": ref_free,
-            "split_bucket": False,
+            "split_bucket": True,
             "return_fragment":stream,
             "seed": seed,
             "parallel_infer": parallel_infer,

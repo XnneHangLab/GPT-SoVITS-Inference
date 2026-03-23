@@ -165,7 +165,7 @@
         "label": "并行推理",
         "description": "Parallel inference or not.",
         "alias": ["parallel_infer", "parallel"],
-        "default": false
+        "default": true
     },
     "repetition_penalty": {
         "type": "float",
