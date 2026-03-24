@@ -324,7 +324,7 @@ class GSV_Synthesizer(Base_TTS_Synthesizer):
         ref_audio_path=None,
         prompt_text=None,
         prompt_language="auto",
-        batch_size=20,
+        batch_size=1,
         speed=1.0,
         top_k=5,
         top_p=1.0,

@@ -76,7 +76,7 @@
         "label": "批处理大小",
         "description": "Batch size for processing.",
         "alias": ["batch_size", "batch"],
-        "default": 20,
+        "default": 1,
         "min_value": 1,
         "max_value": 100,
         "step": 1
